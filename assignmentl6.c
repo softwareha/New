@@ -1,81 +1,78 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include<stdio.h>
+#include<limits.h>
 
-#define MAX_FRAMES 3   // Maximum number of frames
-
-void printFrames(int frames[], int numFrames) {
-    for (int i = 0; i < numFrames; i++) {
-        if (frames[i] == -1)
-            printf("- ");
-        else
-            printf("%d ", frames[i]);
-    }
-    printf("\n");
-}
-
-int isPageInMemory(int page, int frames[], int numFrames) {
-    for (int i = 0; i < numFrames; i++) {
-        if (frames[i] == page)
+int checkHit(int incomingPage, int queue[], int occupied){
+    
+    for(int i = 0; i < occupied; i++){
+        if(incomingPage == queue[i])
             return 1;
     }
+    
     return 0;
 }
 
-int getLeastRecentlyUsedIndex(int pages[], int numPages, int frames[], int numFrames, int currentIndex) {
-    int lruIndex = 0;
-    int lruTimestamp = numPages;
-    for (int i = 0; i < numFrames; i++) {
-        int j;
-        for (j = currentIndex - 1; j >= 0; j--) {
-            if (frames[i] == pages[j])
-                break;
-        }
-        if (j == -1) {
-            lruIndex = i;
-            break;
-        }
-        if (j < lruTimestamp) {
-            lruTimestamp = j;
-            lruIndex = i;
-        }
-    }
-    return lruIndex;
+void printFrame(int queue[], int occupied)
+{
+    for(int i = 0; i < occupied; i++)
+        printf("%d\t\t\t",queue[i]);
 }
 
-int main() {
-    int pages[] = {1, 2, 3, 4, 5, 6, 1, 2, 3, 7, 8};  // Page reference string
-    int numPages = sizeof(pages) / sizeof(pages[0]);
+int main()
+{
+    int incomingStream[] = {1, 2, 3, 2, 1, 5, 2, 1, 6, 2, 5, 6, 3, 1, 3};
+    
+    int n = sizeof(incomingStream)/sizeof(incomingStream[0]);
+    int frames = 3;
+    int queue[n];
+    int distance[n];
+    int occupied = 0;
+    int pagefault = 0;
+    
+    printf("Page\t Frame1 \t Frame2 \t Frame3\n");
+    
+    for(int i = 0;i < n; i++)
+    {
+        printf("%d:  \t\t",incomingStream[i]);
+        if(checkHit(incomingStream[i], queue, occupied)){
+            printFrame(queue, occupied);
+        }
+        
+        else if(occupied < frames){
+            queue[occupied] = incomingStream[i];
+            pagefault++;
+            occupied++;
+            
+            printFrame(queue, occupied);
+        }
+        else{
+            
+            int max = INT_MIN;
+            int index;
+            for (int j = 0; j < frames; j++)
+            {
+                distance[j] = 0;
+                for(int k = i - 1; k >= 0; k--)
+                {
+                    ++distance[j];
 
-    int frames[MAX_FRAMES];   // Array to hold page frames
-    int numFrames = 0;         // Number of page frames currently occupied
-
-    // Initialize frames as empty
-    for (int i = 0; i < MAX_FRAMES; i++)
-        frames[i] = -1;
-
-    // Perform LRU page replacement
-    int pageFaults = 0;
-    int currentIndex = 0;   // Current index in the page reference string
-    for (int i = 0; i < numPages; i++) {
-        printf("Page %d: ", pages[i]);
-        if (!isPageInMemory(pages[i], frames, numFrames)) {
-            if (numFrames < MAX_FRAMES) {
-                frames[numFrames] = pages[i];
-                numFrames++;
-            } else {
-                int lruIndex = getLeastRecentlyUsedIndex(pages, numPages, frames, numFrames, currentIndex);
-                frames[lruIndex] = pages[i];
+                    if(queue[j] == incomingStream[k])
+                        break;
+                }
+                
+                if(distance[j] > max){
+                    max = distance[j];
+                    index = j;
+                }
             }
-            pageFaults++;
-            printFrames(frames, numFrames);
-        } else {
-            printf("Page hit!\n");
+            queue[index] = incomingStream[i];
+            printFrame(queue, occupied);
+            pagefault++;
         }
-        currentIndex++;
+        
+        printf("\n");
     }
-
-    printf("\nTotal page faults: %d\n", pageFaults);
-
+    
+    printf("Page Fault: %d",pagefault);
+    
     return 0;
 }
-
