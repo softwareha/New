@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+void removeDirectoryRecursively(const char* path) {
+    DIR* dir = opendir(path);
+    struct dirent* entry;
+
+    if (!dir) {
+        perror("opendir");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        char* newPath = (char*)malloc(strlen(path) + strlen(entry->d_name) + 2);
+        sprintf(newPath, "%s/%s", path, entry->d_name);
+
+        struct stat st;
+        if (stat(newPath, &st) == -1) {
+            perror("stat");
+            free(newPath);
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            removeDirectoryRecursively(newPath);
+        } else {
+            if (unlink(newPath) == -1)
+                perror("unlink");
+        }
+
+        free(newPath);
+    }
+
+    closedir(dir);
+
+    if (rmdir(path) == -1)
+        perror("rmdir");
+}
+
+int main() {
+    const char* directory = "/path/to/directory";
+    removeDirectoryRecursively(directory);
+
+    return 0;
+}

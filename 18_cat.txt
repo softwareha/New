@@ -1,0 +1,86 @@
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+#define BUFFER_SIZE 4096
+
+void copyFile(const char* src, const char* dest) {
+    int srcFile, destFile;
+    ssize_t bytesRead, bytesWritten;
+    char buffer[BUFFER_SIZE];
+
+    // Open source file for reading
+    srcFile = open(src, O_RDONLY);
+    if (srcFile == -1) {
+        perror("Error opening source file");
+        return;
+    }
+
+    // Create destination file or overwrite existing
+    destFile = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (destFile == -1) {
+        perror("Error creating destination file");
+        close(srcFile);
+        return;
+    }
+
+    // Copy source file to destination file
+    while ((bytesRead = read(srcFile, buffer, BUFFER_SIZE)) > 0) {
+        bytesWritten = write(destFile, buffer, bytesRead);
+        if (bytesWritten == -1) {
+            perror("Error writing to destination file");
+            close(srcFile);
+            close(destFile);
+            return;
+        }
+    }
+
+    // Close files
+    close(srcFile);
+    close(destFile);
+
+    printf("File copied successfully.\n");
+}
+
+void displayFile(const char* filename) {
+    int file;
+    ssize_t bytesRead;
+    char buffer[BUFFER_SIZE];
+
+    // Open file for reading
+    file = open(filename, O_RDONLY);
+    if (file == -1) {
+        perror("Error opening file");
+        return;
+    }
+
+    // Display file contents
+    while ((bytesRead = read(file, buffer, BUFFER_SIZE)) > 0) {
+        write(STDOUT_FILENO, buffer, bytesRead);
+    }
+
+    // Close file
+    close(file);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Usage: ./cp source_file destination_file\n");
+        return 1;
+    }
+
+    copyFile(argv[1], argv[2]);
+
+    printf("\n");
+
+    displayFile(argv[2]);
+
+    return 0;
+}
+/*To compile and run this code, save it to a file (e.g., cp_cat.c), and then use the following commands:
+
+shell
+Copy code
+gcc cp_cat.c -o cp_cat
+./cp_cat source_file destination_file
+Replace source_file and destination_file with the appropriate filenames. This will copy the source file to the destination file and then display the contents of the copied file. */
